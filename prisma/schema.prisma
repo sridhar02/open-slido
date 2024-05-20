@@ -14,18 +14,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())
@@ -62,7 +50,7 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+    slidos        Slido[]
 }
 
 model VerificationToken {
@@ -71,4 +59,51 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Slido {
+    id String @id @default(cuid())
+
+    title    String
+    joinCode String @unique
+    type     Type   @default(PUBLIC)
+
+    startDate DateTime
+    endDate   DateTime
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    User   User?   @relation(fields: [userId], references: [id])
+    userId String?
+
+    Interaction Interaction[]
+}
+
+enum Type {
+    PUBLIC
+    PRIVATE
+}
+
+model Interaction {
+    id       String     @id @default(cuid())
+    title    String
+    slidoId  String
+    slido    Slido      @relation(fields: [slidoId], references: [id])
+    Question Question[]
+}
+
+model Question {
+    id            Int         @id @default(autoincrement())
+    text          String
+    interactionId String
+    interaction   Interaction @relation(fields: [interactionId], references: [id])
+    answers       Answer[]
+}
+
+model Answer {
+    id         Int      @id @default(autoincrement())
+    text       String
+    isCorrect  Boolean
+    questionId Int
+    question   Question @relation(fields: [questionId], references: [id])
 }
