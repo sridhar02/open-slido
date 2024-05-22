@@ -77,6 +77,7 @@ model Slido {
     userId String?
 
     Interaction Interaction[]
+    // participants
 }
 
 enum Type {
@@ -85,19 +86,53 @@ enum Type {
 }
 
 model Interaction {
-    id       String     @id @default(cuid())
-    title    String
-    slidoId  String
-    slido    Slido      @relation(fields: [slidoId], references: [id])
-    Question Question[]
+    id      String @id @default(cuid())
+    title   String
+    slidoId String
+    slido   Slido  @relation(fields: [slidoId], references: [id])
+
+    createdAt DateTime @default(now())
+
+    type                InteractionType
+    QuestionInteraction QuestionInteraction?
+    WordInteraction     WordInteraction?
+    Question            Question[]
+}
+
+enum InteractionType {
+    QUESTION
+    WORD
+}
+
+model QuestionInteraction {
+    id            String      @id @default(cuid())
+    interactionId String      @unique
+    interaction   Interaction @relation(fields: [interactionId], references: [id])
+    questions     Question[]
+}
+
+model WordInteraction {
+    id            String      @id @default(cuid())
+    interactionId String      @unique
+    interaction   Interaction @relation(fields: [interactionId], references: [id])
+    words         Word[]
+}
+
+model Word {
+    id                Int             @id @default(autoincrement())
+    text              String
+    wordInteractionId String
+    wordInteraction   WordInteraction @relation(fields: [wordInteractionId], references: [id])
 }
 
 model Question {
-    id            Int         @id @default(autoincrement())
-    text          String
-    interactionId String
-    interaction   Interaction @relation(fields: [interactionId], references: [id])
-    answers       Answer[]
+    id                    Int                  @id @default(autoincrement())
+    text                  String
+    interactionId         String
+    interaction           Interaction          @relation(fields: [interactionId], references: [id])
+    answers               Answer[]
+    QuestionInteraction   QuestionInteraction? @relation(fields: [questionInteractionId], references: [id])
+    questionInteractionId String?
 }
 
 model Answer {
