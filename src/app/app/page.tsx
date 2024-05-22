@@ -1,7 +1,7 @@
 "use client";
+
 import { Plus, ListFilter, Calendar, EllipsisVertical } from "lucide-react";
 import Button from "../_components/Button";
-// import Select from "react-select";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
@@ -10,7 +10,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -18,7 +17,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "~/trpc/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -28,8 +27,8 @@ export default function Page() {
 
   const [showModel, setShowModel] = useState(false);
   const [slidoName, setSlidoName] = useState("");
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  const [startDate, setStartDate] = useState<Date | null>(new Date());
+  const [endDate, setEndDate] = useState<Date | null>(new Date());
 
   const events = api.slido.getAllSlidos.useQuery();
   const { data: eventsData } = events;
@@ -44,11 +43,13 @@ export default function Page() {
   });
 
   const handleSubmit = () => {
-    createSlido.mutate({
-      title: slidoName,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
+    if (startDate && endDate) {
+      createSlido.mutate({
+        title: slidoName,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+    }
   };
 
   const formatDateRange = (start: Date, end: Date) => {
@@ -94,7 +95,7 @@ export default function Page() {
                     <p>Start Data</p>
                     <DatePicker
                       selected={startDate}
-                      onChange={(date) => setStartDate(date)}
+                      onChange={(date: Date | null) => setStartDate(date)}
                       className="w-3/5 rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -102,7 +103,7 @@ export default function Page() {
                     <p>End Data</p>
                     <DatePicker
                       selected={endDate}
-                      onChange={(date) => setEndDate(date)}
+                      onChange={(date: Date | null) => setEndDate(date)}
                       className="w-3/5 rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -112,21 +113,9 @@ export default function Page() {
                 <div className="rounded-sm bg-blue-400 p-2 text-sm">
                   Anyone with the code or link can participate
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowModel(false)}
-                >
-                  Close
-                </Button>
+                <Button onClick={() => setShowModel(false)}>Close</Button>
                 <DialogClose asChild>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleSubmit}
-                  >
-                    Create Slido
-                  </Button>
+                  <Button onClick={handleSubmit}>Create Slido</Button>
                 </DialogClose>
               </DialogFooter>
             </DialogContent>

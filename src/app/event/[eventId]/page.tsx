@@ -26,7 +26,7 @@ export default function Page({ params }: { params: { eventId: string } }) {
   if (isLoading) return null;
 
   return (
-    <EventLayout title={eventData.title}>
+    <EventLayout title={eventData?.title}>
       <div className="flex w-full">
         <div className="flex h-[700px] w-[480px] w-full flex-col gap-4 border-r-2 bg-[#fbfbfb] p-4 px-8">
           <div className="flex items-center justify-between">

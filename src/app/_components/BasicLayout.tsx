@@ -11,7 +11,7 @@ const sidebarItems = [
 ];
 
 type ownProps = {
-  children: any;
+  children: React.ReactNode;
   session: Session | null;
 };
 
@@ -27,7 +27,7 @@ const BasicLayout = (props: ownProps) => {
           {/* <div>
             <input type="text" placeholder="search" />
           </div> */}
-          <div className="text-sm">What's new</div>
+          <div className="text-sm">{"What's new"}</div>
           <div className="rounded-full bg-green-300 p-2 text-sm">
             {" "}
             {session && <span>{session.user?.name}</span>}

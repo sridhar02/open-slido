@@ -1,5 +1,4 @@
 import { BarChart2, Settings, TrendingUp, MoveLeft } from "lucide-react";
-import { Session } from "next-auth";
 import Link from "next/link";
 import React from "react";
 
@@ -10,8 +9,8 @@ const sidebarItems = [
 ];
 
 type ownProps = {
-  children: any;
-  title: string;
+  children: React.ReactNode;
+  title: string | undefined;
 };
 
 const EventLayout = (props: ownProps) => {
@@ -27,7 +26,7 @@ const EventLayout = (props: ownProps) => {
           {/* <div>
             <input type="text" placeholder="search" />
           </div> */}
-          <div className="text-sm">What's new</div>
+          <div className="text-sm">{"What's new"}</div>
           <div className="rounded-full bg-green-300 p-2 text-sm"> </div>
         </div>
       </div>
