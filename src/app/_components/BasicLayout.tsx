@@ -20,7 +20,9 @@ const BasicLayout = (props: ownProps) => {
   return (
     <div className="flex h-screen w-full flex-col">
       <nav className="flex w-full items-center justify-between border-b-2 p-2">
-        <h1 className="pl-4 text-2xl">Open Slido</h1>
+        <Link href="/app">
+          <h1 className="pl-4 text-2xl">Open Slido</h1>
+        </Link>
         <div className="mr-4 flex items-center gap-2">
           {/* <div>
             <input type="text" placeholder="search" />
