@@ -1,5 +1,8 @@
 import { slidoRouter } from "~/server/api/routers/slido";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
+import { pollRouter } from "./routers/interaction";
+import { answerRouter } from "./routers/answer";
+import { questionRouter } from "./routers/question";
 
 /**
  * This is the primary router for your server.
@@ -7,7 +10,10 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
+  poll: pollRouter,
   slido: slidoRouter,
+  question: questionRouter,
+  answer: answerRouter,
 });
 
 // export type definition of API
