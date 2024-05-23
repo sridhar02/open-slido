@@ -1,6 +1,6 @@
 import { slidoRouter } from "~/server/api/routers/slido";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
-import { pollRouter } from "./routers/interaction";
+import { pollRouter } from "./routers/poll";
 import { answerRouter } from "./routers/answer";
 import { questionRouter } from "./routers/question";
 
