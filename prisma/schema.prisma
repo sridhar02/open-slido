@@ -76,8 +76,7 @@ model Slido {
     User   User?   @relation(fields: [userId], references: [id])
     userId String?
 
-    Interaction Interaction[]
-    // participants
+    polls Poll[]
 }
 
 enum Type {
@@ -85,60 +84,43 @@ enum Type {
     PRIVATE
 }
 
-model Interaction {
-    id      String @id @default(cuid())
-    title   String
-    slidoId String
-    slido   Slido  @relation(fields: [slidoId], references: [id])
+model Poll {
+    id        String     @id @default(cuid())
+    title     String
+    Question  Question[]
+    createdAt DateTime   @default(now()) @map("created_at")
+    updatedAt DateTime?  @updatedAt @map("updated_at")
 
-    createdAt DateTime @default(now())
+    Slido   Slido?  @relation(fields: [slidoId], references: [id])
+    slidoId String?
 
-    type                InteractionType
-    QuestionInteraction QuestionInteraction?
-    WordInteraction     WordInteraction?
-    Question            Question[]
+    participants Participant[]
 }
 
-enum InteractionType {
-    QUESTION
-    WORD
-}
+model Participant {
+    id        String    @id @default(cuid())
+    name      String
+    email     String?
+    createdAt DateTime  @default(now()) @map("created_at")
+    updatedAt DateTime? @updatedAt @map("updated_at")
 
-model QuestionInteraction {
-    id            String      @id @default(cuid())
-    interactionId String      @unique
-    interaction   Interaction @relation(fields: [interactionId], references: [id])
-    questions     Question[]
-}
-
-model WordInteraction {
-    id            String      @id @default(cuid())
-    interactionId String      @unique
-    interaction   Interaction @relation(fields: [interactionId], references: [id])
-    words         Word[]
-}
-
-model Word {
-    id                Int             @id @default(autoincrement())
-    text              String
-    wordInteractionId String
-    wordInteraction   WordInteraction @relation(fields: [wordInteractionId], references: [id])
+    Poll   Poll?   @relation(fields: [pollId], references: [id])
+    pollId String?
 }
 
 model Question {
-    id                    Int                  @id @default(autoincrement())
-    text                  String
-    interactionId         String
-    interaction           Interaction          @relation(fields: [interactionId], references: [id])
-    answers               Answer[]
-    QuestionInteraction   QuestionInteraction? @relation(fields: [questionInteractionId], references: [id])
-    questionInteractionId String?
+    id      Int      @id @default(autoincrement())
+    text    String
+    answers Answer[]
+
+    Poll   Poll?   @relation(fields: [pollId], references: [id])
+    pollId String?
 }
 
 model Answer {
     id         Int      @id @default(autoincrement())
     text       String
-    isCorrect  Boolean
+    isCorrect  Boolean  @default(false)
     questionId Int
     question   Question @relation(fields: [questionId], references: [id])
 }
