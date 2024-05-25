@@ -1,178 +1,254 @@
 "use client";
 
-import {
-  Trophy,
-  MessageSquareMore,
-  ChevronDown,
-  Settings,
-  CircleCheck,
-  Trash2,
-  MoveLeft,
-} from "lucide-react";
-import { useState } from "react";
-import EventLayout from "~/app/_components/EventLayout";
+import { Trophy, MessageSquareMore, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import isArray from "lodash/isArray";
+import isEmpty from "lodash/isEmpty";
+
 import { Input } from "~/components/ui/input";
+import PollsComponent from "./PollsComponent";
+import EventLayout from "~/app/_components/EventLayout";
+
 import { api } from "~/trpc/react";
+import { Question } from "./types";
+import Interactions from "~/app/_components/Interactions";
+
+const defaultQuestion: Question[] = [
+  {
+    text: "",
+    answers: [
+      {
+        text: "",
+        isCorrect: false,
+      },
+      {
+        text: "",
+        isCorrect: false,
+      },
+    ],
+  },
+];
 
 export default function Page({ params }: { params: { eventId: string } }) {
-  const [quizName, setQuizName] = useState("");
-  const [showQuestions, setShowQuestions] = useState(false);
-  const [showInteractions, setShowInteractions] = useState(false);
-
-  const event = api.slido.getSlido.useQuery({ id: params.eventId });
+  const eventId = params.eventId;
+  const event = api.slido.getSlido.useQuery({ id: eventId });
+  const polls = api.poll.getAll.useQuery(
+    { slidoId: eventId },
+    { enabled: !!event },
+  );
 
   const { data: eventData, isLoading } = event;
+  const { data: pollsData } = polls;
+  const currentPoll = pollsData?.[0];
+  const pollId = currentPoll?.id;
 
-  if (isLoading) return null;
+  const questionsResponse = api.question.getQuestions.useQuery(
+    {
+      pollId: pollId,
+    },
+    {
+      //@ts-expect-error currentPoll can be string or undefined
+      enabled: currentPoll?.id && !!pollId,
+    },
+  );
+
+  const questionsData = questionsResponse && questionsResponse?.data;
+  const isQuestionsLoading = questionsResponse && questionsResponse?.isLoading;
+
+  const [quizName, setQuizName] = useState("");
+  const [showQuestion, setShowQuestion] = useState(false);
+  const [showInteractions, setShowInteractions] = useState(false);
+  const [questions, setQuestions] = useState<Question[] | undefined>();
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
+
+  const createPoll = api.poll.createPoll.useMutation({
+    onSuccess: (data) => {
+      console.log(data);
+      if (questions) {
+        setQuestions([...questions, ...defaultQuestion]);
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (questionsData) {
+      setQuestions(questionsData);
+    }
+  }, [questionsData]);
+
+  const handleOptionChange = (questionId: number, value: string) => {
+    const updatedQuestions = questions?.map((ques, index) => {
+      if (index === questionId) {
+        return {
+          ...ques,
+          text: value,
+        };
+      }
+      return ques;
+    });
+    setQuestions(updatedQuestions);
+  };
+
+  const handleSelect = (questionId: number, answerId: number, type: string) => {
+    const updatedQuestions = questions?.map((ques, index) => {
+      if (questionId === index) {
+        return {
+          ...ques,
+          answers: ques.answers.map((ans, ansIndex) =>
+            answerId === ansIndex
+              ? {
+                  ...ans,
+                  isCorrect: type === "select" ? !ans.isCorrect : ans.isCorrect,
+                }
+              : ans,
+          ),
+        };
+      }
+      return ques;
+    });
+
+    setQuestions(updatedQuestions);
+    if (updatedQuestions) {
+      createPoll.mutate({
+        title: quizName,
+        slidoId: eventId,
+        questions: updatedQuestions,
+        pollId,
+      });
+    }
+  };
+
+  const handleInput = (
+    questionId: number,
+    answerId: number,
+    value: string,
+  ): void => {
+    const updatedQuestions = questions?.map((ques, index) => {
+      if (questionId === index) {
+        return {
+          ...ques,
+          answers: ques.answers.map((ans, ansIndex) =>
+            answerId === ansIndex
+              ? {
+                  ...ans,
+                  text: value ? value : ans.text,
+                }
+              : ans,
+          ),
+        };
+      }
+      return ques;
+    });
+
+    setQuestions(updatedQuestions);
+  };
+
+  const addNewQuestion = () => {
+    if (questions && questions.length > 0) {
+      setShowQuestion(true);
+      setQuestions([...questions, ...defaultQuestion]);
+      if (questions.length === 0) {
+        setSelectedQuestionIndex(0);
+      } else {
+        setSelectedQuestionIndex(questions.length);
+      }
+    } else {
+      setQuestions([...defaultQuestion]);
+    }
+  };
+
+  const handleFirstQuestion = () => {
+    setQuestions([...defaultQuestion]);
+    setShowQuestion(true);
+  };
+
+  console.log({
+    currentPoll,
+    questionsData,
+    pollsData,
+    questions,
+    setSelectedQuestionIndex,
+  });
+
+  const isLoadingState = isLoading || isQuestionsLoading;
+  const isQuizEmpty = !isLoadingState && isEmpty(questions);
 
   return (
     <EventLayout title={eventData?.title}>
-      <div className="flex w-full">
-        <div className="flex h-[700px] w-[480px] w-full flex-col gap-4 border-r-2 bg-[#fbfbfb] p-4 px-8">
-          <div className="flex items-center justify-between">
-            <h3>My interactions</h3>
-            <button
-              className="flex h-10 gap-2 rounded-md bg-green-400 p-2"
-              onClick={() => setShowInteractions(false)}
-            >
-              {" "}
-              + Add new
-            </button>
-          </div>
-          <div>
-            <h3 className="text-md font-semibold">Audience Q&A</h3>
-            <div className="my-3 flex items-start justify-between rounded-md border-2 border-black px-2 py-4">
-              <MessageSquareMore className="mr-4 h-8 w-8" />
-              <p className="text-sm">
-                Add Q&A to collect questions from your audience
-              </p>
-              <button className="rounded-md bg-green-400 p-1 px-2">Add</button>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-md mb-4 font-semibold">Polls</h3>
-            <div className="">
-              {!showInteractions ? (
-                <p className="text-center text-gray-400">
-                  Your interactions will appear here
-                </p>
-              ) : (
-                <div>
-                  <div className="flex flex-col gap-4 rounded-md border-2 border-green-400 p-4 opacity-50">
-                    <div className="flex items-center justify-between">
-                      <p>{quizName ? quizName : "Untitled quiz"}</p>
-                      <ChevronDown />
-                    </div>
-                    <p>0 questions</p>
-                    <div className="flex gap-3">
-                      <Trophy className="text-red-400" />
-                      <p>o votes</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="m-8  w-full rounded-md border-2 bg-white p-2">
-          {!showInteractions ? (
+      <div className="m-8 flex w-[95%] rounded-md border-2 bg-white p-2">
+        <div className="h-full w-full p-4">
+          {/* <Interactions setShowInteractions={setShowInteractions} /> */}
+          {isLoadingState && <div>Loading ...</div>}
+          {isQuizEmpty && (
             <>
-              <div className="flex justify-between">
-                <h3 className="text-lg">Add new interaction</h3>
-                <p className="text-md text-gray-200">Close X</p>
-              </div>
-              <div className="mt-4">
-                <div
-                  className="flex w-[180px] cursor-pointer flex-col items-center justify-center rounded-md border-2 p-8"
-                  onClick={() => setShowInteractions(true)}
+              <Input
+                className=""
+                value={quizName}
+                onChange={(e) => setQuizName(e.target.value)}
+                placeholder="Quiz Name"
+              />
+              <div className="flex h-full flex-col items-center justify-center">
+                <p>Quiz is empty</p>
+                <button
+                  className="mt-16 flex h-10 gap-2 rounded-md bg-green-400 p-2 text-white"
+                  onClick={() => handleFirstQuestion()}
                 >
-                  <Trophy className="text-red-400" />
-                  <p className="text-md mt-4 font-semibold">Quiz</p>
-                </div>
+                  + Add first question
+                </button>
               </div>
             </>
-          ) : (
-            <div className="h-full p-4">
-              {!showQuestions ? (
-                <>
-                  <Input
-                    className=""
-                    value={quizName}
-                    onChange={(e) => setQuizName(e.target.value)}
-                    placeholder="Quiz Name"
-                  />
-                  <div className="flex h-full flex-col items-center justify-center">
-                    <p>Quiz is empty</p>
-                    <button
-                      className="mt-16 flex h-10 gap-2 rounded-md bg-green-400 p-2 text-white"
-                      onClick={() => setShowQuestions(true)}
-                    >
-                      + Add first question
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <div
-                    className="ml-2 flex cursor-pointer gap-2"
-                    onClick={() => setShowQuestions(false)}
-                  >
-                    <MoveLeft /> Back to all questions
-                  </div>
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <p className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-600 p-4">
-                          1
-                        </p>
-                        <div className="flex flex-col">
-                          <p>Quiz question</p>
-                          <div className="flex gap-2">
-                            <p>0 votes</p> <p>20 sec</p>
-                          </div>
-                        </div>
-                      </div>{" "}
-                      <div className="flex gap-3">
-                        <p>random Ques</p>
-                        <p>Poll Settings</p>
-                        <Settings />
-                      </div>
-                    </div>
-                    <Input
-                      placeholder="What would  you like to ask?"
-                      className="my-4"
-                    />
-                    <div className="mt-6 flex flex-col gap-3 px-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <CircleCheck />
-                          <input placeholder="Option 1" className="border-0" />
-                        </div>
-                        <Trash2 />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="ml-10 h-4 w-[92%] rounded-md bg-[#E5E5E5]"></div>
-                        <div className="ml-2">0%</div>
-                      </div>
-                    </div>
-                    <div className="mt-8 flex flex-col gap-3 px-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <CircleCheck />
-                          <input placeholder="Option 2" className="border-0" />
-                        </div>
-                        <Trash2 />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="ml-10 h-4 w-[92%] rounded-md bg-[#E5E5E5]"></div>
-                        <div className="ml-2">0%</div>
-                      </div>
+          )}
+          {questions && currentPoll && !showQuestion && (
+            <div className="">
+              <h1 className="py-2 text-lg font-semibold">
+                {currentPoll?.title}
+              </h1>
+              {questions.map((ques, index) => (
+                <div
+                  key={index}
+                  onClick={() => setSelectedQuestionIndex(index)}
+                  className="hover: rounded-md border-2 border-white p-3 py-2 hover:border-gray-400"
+                >
+                  <div className="flex items-center gap-4">
+                    <p className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-400 p-2">
+                      {index + 1}
+                    </p>
+                    <div className="flex flex-col">
+                      <p className="text-sm">Quiz question</p>
+                      <p className="text-sm">0 votes 20 sec</p>
                     </div>
                   </div>
+                  <p className="py-2">{ques.text}</p>
                 </div>
-              )}
+              ))}
+              <button
+                onClick={addNewQuestion}
+                className="my-4 flex w-full justify-start rounded-md border-2 border-white p-2 hover:border-gray-400"
+              >
+                + Add another quiz question
+              </button>
             </div>
           )}
+          {!isEmpty(questions) && showQuestion && (
+            <>
+              <PollsComponent
+                questions={questions}
+                handleSelect={handleSelect}
+                handleInput={handleInput}
+                setShowQuestions={setShowQuestion}
+                handleOptionChange={handleOptionChange}
+                selectedQuestionIndex={selectedQuestionIndex}
+                setSelectedQuestionIndex={setSelectedQuestionIndex}
+                setQuestions={setQuestions}
+              />
+            </>
+          )}
+
+          <div>
+            {/* <button className="my-4 flex w-full justify-start rounded-md p-2 hover:border-2">
+              Add leaderboard
+            </button> */}
+          </div>
         </div>
       </div>
     </EventLayout>

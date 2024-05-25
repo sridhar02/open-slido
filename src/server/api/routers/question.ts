@@ -4,21 +4,16 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const questionRouter = createTRPCRouter({
   getQuestions: protectedProcedure
-    .input(z.object({ pollId: z.string() }))
+    .input(z.object({ pollId: z.string().optional() }))
     .query(({ ctx, input }) => {
-      return ctx.db.question.findMany({
-        where: { pollId: input.pollId },
-        select: {
-          answers: {
-            select: {
-              text: true,
-              // id: true,
-              isCorrect: true,
-            },
+      if (input.pollId) {
+        return ctx.db.question.findMany({
+          where: { pollId: input.pollId },
+          include: {
+            answers: true,
           },
-          text: true,
-        },
-      });
+        });
+      }
     }),
 
   createQuestion: protectedProcedure
